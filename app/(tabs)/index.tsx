@@ -3,24 +3,24 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Linking,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+	ActivityIndicator,
+	Alert,
+	Dimensions,
+	Image,
+	Linking,
+	Modal,
+	Platform,
+	ScrollView,
+	StyleSheet,
+	TextInput,
+	TouchableOpacity,
+	View,
 } from 'react-native';
 import MapView, {
-  Circle,
-  Marker,
-  PROVIDER_GOOGLE,
-  Region,
+	Circle,
+	Marker,
+	PROVIDER_GOOGLE,
+	Region,
 } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
@@ -183,6 +183,7 @@ export default function MapScreen() {
 	const [hasLocationPermission, setHasLocationPermission] =
 		useState<boolean>(false);
 	const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
+	const [userAddress, setUserAddress] = useState<string>('Mencari lokasi...');
 	const [cafeLocations, setCafeLocations] = useState<Cafe[]>([]);
 	const [searchQuery, setSearchQuery] = useState<string>('');
 	const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -227,8 +228,8 @@ export default function MapScreen() {
 					imageUrl:
 						'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80',
 					coordinate: {
-						latitude: lat - 0.0015,
-						longitude: lng - 0.002,
+						latitude: lat - 0.015,
+						longitude: lng - 0.012,
 					},
 					menu: dummyMenu,
 				},
@@ -242,8 +243,8 @@ export default function MapScreen() {
 					imageUrl:
 						'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80',
 					coordinate: {
-						latitude: lat + 0.003,
-						longitude: lng - 0.001,
+						latitude: lat + 0.025,
+						longitude: lng - 0.018,
 					},
 					menu: dummyMenu,
 				},
@@ -257,8 +258,8 @@ export default function MapScreen() {
 					imageUrl:
 						'https://images.unsplash.com/photo-1453614512568-c4024d13c247?auto=format&fit=crop&w=600&q=80',
 					coordinate: {
-						latitude: lat - 0.0025,
-						longitude: lng + 0.003,
+						latitude: lat - 0.025,
+						longitude: lng + 0.023,
 					},
 					menu: dummyMenu,
 				},
@@ -272,8 +273,8 @@ export default function MapScreen() {
 					imageUrl:
 						'https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?auto=format&fit=crop&w=600&q=80',
 					coordinate: {
-						latitude: lat + 0.001,
-						longitude: lng - 0.0035,
+						latitude: lat + 0.018,
+						longitude: lng + 0.035,
 					},
 					menu: dummyMenu,
 				},
@@ -281,7 +282,7 @@ export default function MapScreen() {
 		}
 
 		try {
-			const radius = 2000;
+			const radius = 5000;
 			const type = 'cafe';
 			const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${GOOGLE_MAPS_API_KEY}`;
 
@@ -330,11 +331,31 @@ export default function MapScreen() {
 
 				setUserLocation({ latitude, longitude });
 
+				try {
+					const geocode = await Location.reverseGeocodeAsync({
+						latitude,
+						longitude,
+					});
+					if (geocode && geocode.length > 0) {
+						const addr = geocode[0];
+						const street = addr.street || addr.name || '';
+						const city = addr.city || addr.subregion || '';
+						const formattedAddress = [street, city]
+							.filter(Boolean)
+							.join(', ');
+						setUserAddress(formattedAddress || 'Lokasi Saat Ini');
+					} else {
+						setUserAddress('Lokasi Saat Ini');
+					}
+				} catch {
+					setUserAddress('Lokasi Saat Ini');
+				}
+
 				const initialRegion = {
 					latitude,
 					longitude,
-					latitudeDelta: 0.015,
-					longitudeDelta: 0.015,
+					latitudeDelta: 0.06,
+					longitudeDelta: 0.06,
 				};
 
 				setRegion(initialRegion);
@@ -384,10 +405,10 @@ export default function MapScreen() {
 		if (mapRef.current) {
 			mapRef.current.animateToRegion(
 				{
-					latitude: cafe.coordinate.latitude - 0.005,
+					latitude: cafe.coordinate.latitude - 0.008,
 					longitude: cafe.coordinate.longitude,
-					latitudeDelta: 0.015,
-					longitudeDelta: 0.015,
+					latitudeDelta: 0.02,
+					longitudeDelta: 0.02,
 				},
 				500,
 			);
@@ -400,8 +421,8 @@ export default function MapScreen() {
 				{
 					latitude: userLocation.latitude,
 					longitude: userLocation.longitude,
-					latitudeDelta: 0.015,
-					longitudeDelta: 0.015,
+					latitudeDelta: 0.06,
+					longitudeDelta: 0.06,
 				},
 				1000,
 			);
@@ -461,10 +482,11 @@ export default function MapScreen() {
 								size={16}
 								color='#00D2FF'
 							/>
-							<ThemedText style={styles.locationBadgeText}>
-								Lokasi Saat Ini Aktif (
-								{userLocation.latitude.toFixed(4)},{' '}
-								{userLocation.longitude.toFixed(4)})
+							<ThemedText
+								style={styles.locationBadgeText}
+								numberOfLines={1}
+								ellipsizeMode='tail'>
+								{userAddress}
 							</ThemedText>
 						</View>
 					</View>
@@ -823,6 +845,7 @@ const styles = StyleSheet.create({
 		color: '#00D2FF',
 		fontSize: 12,
 		fontWeight: '600',
+		maxWidth: width * 0.6,
 	},
 	markerContainer: {
 		alignItems: 'center',
